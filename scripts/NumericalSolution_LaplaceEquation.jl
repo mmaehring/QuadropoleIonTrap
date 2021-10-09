@@ -1,3 +1,4 @@
+using DrWatson
 @quickactivate "QuadropoleIonTrap"
 using Plots
 using LinearAlgebra
