@@ -1,3 +1,4 @@
+@quickactivate "QuadropoleIonTrap"
 using Plots
 using LinearAlgebra
 using ProgressBars
