@@ -56,8 +56,7 @@ DataFrame() # empty
 
 DataFrame(A=1:3, B=5:7, fixed=1)
 
-DataFrame("customer age" => [15, 20, 25],
-                 "first name" => ["Rohit", "Rahul", "Akshat"])
+DataFrame("customer age" => [15, 20, 25], "first name" => ["Rohit", "Rahul", "Akshat"])
 
 mat = [1 2 4 5; 15 58 69 41; 23 21 26 69];
 nms = ["a", "b", "c", "d"];
@@ -227,7 +226,7 @@ cov_mat = estimate_covar(fit)
 margin_of_error = margin_error(fit, 0.05)
 confidence_inter = confidence_interval(fit, 0.05)
 
-#= To get the confidence interval at 10% significance level, run
+#= To get the confidence interval at α % significance level, run
 confidence_interval(fit, alpha)
 which essentially computes:
 estimate parameter value ± (standard error * critical value from t-distribution). =#
@@ -524,13 +523,14 @@ p1, p2 = coef(fit)
 ## BINNING & SOME MORE HYPOTHESIS TESTING
 
 ### BINNING
-using StatsBase
+import StatsBase
 pull_plot = StatsBase.fit(Histogram, Measurements.value.(pulls), nbins=6)
 histo.weights
 
 ### χ² statistics for 200 students SAT scores -> H₀ : They follow a normal distribution
 using CSV
 path_to_data = "C:\\Users\\marcu\\Pwogwamming\\JuliaThings\\ETH\\test_scores.csv"
+
 test_scores = CSV.File(path_to_data,
                         delim=' ',
                         ignorerepeated=false,
@@ -559,7 +559,6 @@ Since 2.69 < 14.07, we do not reject the null hypothesis that the data are norma
 =#
 χ² < χ²_cutoff
 # ⟹ accept hypothesis, reject that this function does NOT model the data to an accuracy of α = 0.05
-
 ## MAXIMUM LIKELIHOOD ESTIMATION -> "In statistics, maximum likelihood estimation (MLE)
 #is a method of estimating the parameters of an assumed probability distribution,
 # given some observed data."
@@ -688,7 +687,7 @@ vz=range(0,3,length=300)
 # 3D
 M = [x^2+y^2+z^2 for x=vx, y=vy, z=vz] # Define values for function on a 100*200*300 cuboid
 
-I=trapz((vx,vy,vz), M) # Numerically integrate over these discrete points
+I=trapz((vx,vy,vz), M); # Numerically integrate over these discrete points
 
 print("result: ", I)
 
