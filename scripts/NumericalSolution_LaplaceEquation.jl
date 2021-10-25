@@ -151,8 +151,8 @@ potential = charged_circle(200, 500, 100, 1.0, potential)
 potential = charged_circle(800, 500, 100, -1.0, potential)
 
 fixed = iszero.(potential)
-# potential = charged_circle(200, 500, 100, 0.0, potential)
-# potential = charged_circle(800, 500, 100, 0.0, potential)
+potential = charged_circle(200, 500, 100, 0.0, potential)
+potential = charged_circle(800, 500, 100, 0.0, potential)
 
 plot(potential, seriestype =:contourf, contours = 50, colorbar=true,
     xlabel = "X axis",
@@ -176,3 +176,6 @@ plot(potential_fixed, seriestype =:contourf, contours = 20, colorbar=true,
     dpi = 200,
     c = :bluesreds
 )
+
+using Interpolations
+using ForwardDiff
