@@ -35,12 +35,14 @@ fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value
 
 plot!(fitted_distribution, xlabel = "Measured q/m values", ylabel = "Percentage of data set", label = "Gaussian Fit, \n μ=$(μ_fitted) & σ=$(σ_fitted)")
 
-# savefig("qm_Distr.png")
+# savefig("/data/qm_Distr.png")
 
+
+## NEW EXPERIMENT PART
 ## Calculate the average radius : diffraction experiment
 λ = (655 ± 5)u"nm" # Wave-length of laser
 R = (50 ± 0.4)u"cm" # Distance to screen
-D = (3.8 ± 0.2)u"cm" # Distance between two minima 
+D = (3.8 ± 0.2)u"cm" # Distance between two minima
 Rₐ = D / 2 # Distance from center to one minimum
 
 # Small angle approximation on equation : sin(θ) = 1.22 ⋅ λ / 2R
@@ -60,7 +62,7 @@ pixel_values = CSV.File(data_path_trails,
                 ignorerepeated=false,
                 missingstring="NA"
 ) |> DataFrame |> Array # pixels
-                    
+
 pixels_per_2_mm = 100 # pixels / mm
 Δs = pixel_values ./ pixels_per_2_mm
 
@@ -78,5 +80,5 @@ mR(velocity) = 6*π*velocity*μ / g_con
 
 prop_values = mR.(v)
 
-# Reynolds number 
+# Reynolds number
 Re(v, R) = 2 * ρ * v * R / μ
