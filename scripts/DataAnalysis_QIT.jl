@@ -7,14 +7,14 @@ using Unitful
 
 ## Read in data
 data_path_qm_distr = "data\\exp_raw\\qM_Values_220V_AC.txt"
-mass_charge_distr = CSV.File(data_path_qm_distr,
+mass_charge_distr_Voltages_DC = CSV.File(data_path_qm_distr,
                         delim=' ',
                         ignorerepeated=false,
                         missingstring="NA") |> DataFrame
-mass_charge_distr = mass_charge_distr |> Array
+mass_charge_distr_Voltages_DC = mass_charge_distr_Voltages_DC |> Array
 
 ## Just a scatter plot
-plot(mass_charge_distr, mass_charge_distr,
+plot(mass_charge_distr_Voltages_DC, mass_charge_distr_Voltages_DC,
     xlabel="xdata",
     ylabel="ydata",
     seriestype=:scatter,
@@ -25,17 +25,17 @@ plot(mass_charge_distr, mass_charge_distr,
 )
 
 ## Bar plot + fitted normal curve
-histogram(mass_charge_distr, bins=range(minimum(mass_charge_distr), stop=maximum(mass_charge_distr), length=6),
-    weights = ones(length(mass_charge_distr)) / length(mass_charge_distr),
+histogram(mass_charge_distr_Voltages_DC, bins=range(minimum(mass_charge_distr_Voltages_DC), stop=maximum(mass_charge_distr_Voltages_DC), length=6),
+    weights = ones(length(mass_charge_distr_Voltages_DC)) / length(mass_charge_distr_Voltages_DC),
     label = "Measured Data"
 )
-fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(mass_charge_distr))
+fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(mass_charge_distr_Voltages_DC))
 μ_fitted = round(fitted_distribution.μ; digits=2)
 σ_fitted = round(fitted_distribution.σ; digits=2)
 
-plot!(fitted_distribution, xlabel = "Measured q/m values", ylabel = "Percentage of data set", label = "Gaussian Fit, \n μ=$(μ_fitted) & σ=$(σ_fitted)")
+plot!(fitted_distribution, xlabel = "DC Values [V]", ylabel = "Percentage of data set", label = "Gaussian Fit, \n μ=$(μ_fitted) & σ=$(σ_fitted)")
 
-# savefig("/data/qm_Distr.png")
+# savefig("plots/qm_distr_upd.png")
 
 
 ## NEW EXPERIMENT PART
@@ -48,37 +48,147 @@ Rₐ = D / 2 # Distance from center to one minimum
 # Small angle approximation on equation : sin(θ) = 1.22 ⋅ λ / 2R
 θ = Rₐ / R # small angle approximation to determine the sine of θ ; i.e. distance between minima / distance to screen
 # Now solve equation for R̄ : R̄ = 1.22 ⋅ λ / 2θ
-R̄ = (1.22 * λ / 2θ) |> u"μm"
+R̄ = (1.22 * λ / (2θ)) |> u"μm"
 
 rel_error = Measurements.uncertainty(R̄) / Measurements.value(R̄) * 100
 
 ## Calculate the average radius : phone screen
+using CSV
+using Measurements
+using Unitful
+using UnitfulUS
+using DataFrames
+using StatsBase
+using Statistics
 
+cd("C:/Users/marcu/OneDrive/Desktop/PraktikumIII/QuadropoleIonTrap")
 
-## Terminal velocity calculations : Setup 2 (Data set 2 & 4)
-data_path_pixel_trails = "data\\exp_raw\\trail_distances.txt"
-pixel_values = CSV.File(data_path_trails,
-                delim=',',
-                ignorerepeated=false,
-                missingstring="NA"
-) |> DataFrame |> Array # pixels
+function analyze_data_phone_screen(PATH; PPI = 458, pixels_calibration = 1)
+    df = CSV.read(PATH, DataFrame)
 
-pixels_per_2_mm = 100 # pixels / mm
-Δs = pixel_values ./ pixels_per_2_mm
+    # Get the first to values from the array, the calibration values for the OPhone screen pixels
+    calib = df[1:2, 1:end] |> Array
 
-FPS = 30 # FPS
-Δt = 1 // FPS # time under which we photograph the falling particle
+    # This gives the amount of pixels on the image / 1 pixel on the iPhone's screen
+    calibration_values = [hypot(i,j)±k for (i,j,k) in zip(calib[:, 1], calib[:, 2], calib[:, 3])] ./ pixels_calibration
+    average_calib = mean(calibration_values)
 
-v = Δs /Δt # calculate the velocity (almost terminal velocity, the particles have been falling for a relatively long time)
+    # Conversion factor from pixels on Picamera image to inches and then to μm
+    conversion_factor = 1/(PPI * average_calib)  * 1u"sinch_us" |> u"μm"
 
+    # get the rest of the raw data, note that these are the DIAMETER values
+    data = df[3:end, begin:end] |> Array
+    values = [hypot(i,j)±k for (i,j,k) in zip(data[:, 1], data[:, 2], data[:, 3])] ./ 2 # get radii
+
+     measurements = values .* conversion_factor
+     relative_errors = Measurements.uncertainty.(measurements) ./ Measurements.value.(measurements) * 100
+     return (measurements, relative_errors)
+end;
+
+PATH1 = "data//exp_raw//PhoneScreen1_first2_calib_1_pixel_onPhone.txt";
+data_set1, errors1 = analyze_data_phone_screen(PATH1);
+println("Mean & standard deviation of the first data set: $(mean(data_set1)) ± ($(std(data_set1))")
+mean_Radius_Phone1 = mean(data_set1);
+println("Relative error: $(std(data_set1) / mean(data_set1) * 100) %")
+println("List of relative errors of the pure data: $(round.(errors1; digits=3))")
+
+PATH2 = "data//exp_raw//PhoneScreen2_first2_calib_1_pixel_onPhone.txt";
+data_set2, error2 = analyze_data_phone_screen(PATH2)
+println("Mean & standard deviation of the second data set: $(mean(data_set2)) ± ($(std(data_set2)))")
+mean_Radius_Phone2 = mean(data_set2);
+
+function analyze_data_terminal_velocity(calibration_val, T, PATH)
+    #=
+    calibration_val is the average diameter of the pendulum in pixels: Pixel -> 2 mm
+    T is the time interval for one flash / photo
+    path is the path to the data
+    =#
+    df = CSV.read(PATH, DataFrame)
+
+    # Get only the good data
+    df = subset(df, :OkQuality => x -> x .== "")
+
+    # Data where the TerminalVelocity is ascertained
+    df_T = subset(df, :SureTerminal => x -> x .== 1)
+    # Data where the TerminalVelocity is NOT ascertained
+    df_NT = subset(df, :SureTerminal => x -> x .== 0)
+
+    # get the raw data, note that these are lengths of one bright stripe
+    data_T = mean(df_T[!, [:y1, :y2]] |> Array, dims=2)
+    data_NT = mean(df_NT[!, [:y1, :y2]] |> Array, dims=2)
+    data_ALL = mean(df[!, [:y1, :y2]] |> Array, dims=2)
+
+    # Conversion factor from pixels to mm    P ⋅ (P / 2mm)^-1 = 2mm * P / P
+    data_T /= calibration_val / 2u"mm"
+    data_NT /= calibration_val / 2u"mm"
+    data_ALL /= (calibration_val / 2u"mm")
+
+    # Convert to velocities
+    data_T /= T
+    data_NT /= T
+    data_ALL /= T
+
+    # New data array
+    # return DataFrame("T" => data_T, "NT" => data_NT, "ALL" => data_ALL);
+    return [data_T .|> u"m/s", data_NT .|> u"m/s", data_ALL .|> u"m/s"];
+end;
+
+path_M4 = "data/exp_raw/TerminalVelocity/RawVids/Particles/M4/M4.csv"
+conversion_setup_2 = mean([95 ± 2, 90 ± 2, 89 ± 1.5]) # pixel / 2mm
+f = 50u"Hz"
+
+data_M4 = analyze_data_terminal_velocity(conversion_setup_2, 1/f |> u"s", path_M4)
+M4_average_velocity_T = mean(data_M4[1])
+
+## Some quick gaussian boy action
+
+using StatsPlots
+M4_T_Cleaned = ustrip.(Measurements.value.(data_M4[1]))
+min_val, max_val = extrema(M4_T_Cleaned);
+# bins_M4 = range(min_val, max_val; length=4);
+histogram_M4_T = histogram(ustrip.(Measurements.value.(M4_T_Cleaned)), bins = 3)
+
+## Stokes law and things
 # Stokes law - > calculating m/R
 ρ = 1.2u"kg^3/m" # (at 1 ATM)
 μ = 1.8e-5u"kg/m/s"
 g_con = (9.80600 ± 0.000005)u"m/s^2" # https://www.metas.ch/metas/de/home/dok/gravitationszonen.html
 
-mR(velocity) = 6*π*velocity*μ / g_con
+m_R(velocity) = 6*π*velocity*μ / g_con
 
-prop_values = mR.(v)
+mass_radius_quotient = m_R.(M4_average_velocity_T)
 
-# Reynolds number
-Re(v, R) = 2 * ρ * v * R / μ
+## Mass calculation for different R:
+m_Laser = mass_radius_quotient * R̄ |> u"kg"
+m_Phone1 = mass_radius_quotient * mean_Radius_Phone1 |> u"kg"
+m_Phone2 = mass_radius_quotient * mean_Radius_Phone2 |> u"kg"
+
+masses = [m_Laser, m_Phone1, m_Phone2]
+
+# Reynolds number for different R
+Re(v, R_val) = @. 2 * ρ * v * R_val / μ
+
+# Laser [1], Phone1 [2] and Phone2 [3]
+radii = [R̄, mean_Radius_Phone1, mean_Radius_Phone2] .|> u"m";
+reynolds_numbers = Re(M4_average_velocity_T, radii);
+
+## Charge calculation
+d = (4 ± 0.25)u"mm"
+r = (3 ± 0.25)u"mm"
+
+α_measured_from_plot = 2.5 ± 0.41
+# α_fem = 0.0003? -> Failure
+
+Ec(V) = α_measured_from_plot * V / (d|>u"m")
+
+g = (9.80600 ± 0.000005)u"m/s^2"
+
+q(m, V) = @. m * g  / Ec(V)
+
+mass_ill_use = Measurements.value(mean(masses)) ± Measurements.uncertainty(std(masses))
+mass_charge_distr_Voltages_DC_units = mass_charge_distr_Voltages_DC .*1u"V"
+
+charges = (q(mass_ill_use, mass_charge_distr_Voltages_DC_units)) .|>u"C"
+
+using PhysicalConstants.CODATA2018: e
+charges_in_unit_charges = charges / ustrip(e) .|> u"kC";

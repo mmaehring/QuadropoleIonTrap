@@ -145,8 +145,8 @@ plot(potential_fixed, seriestype =:contourf, contours = 50, colorbar=true,
 
 ## Geometry of our setup
 potential = generate_potential(false)
-potential = charged_circle(500, 800, 100, -1.0, potential)
-potential = charged_circle(500, 200, 100, 1.0, potential)
+potential = charged_circle(500, 800, 101, -1.0, potential)
+potential = charged_circle(500, 200, 101, 1.0, potential)
 potential = charged_circle(200, 500, 100, 1.0, potential)
 potential = charged_circle(800, 500, 100, -1.0, potential)
 
@@ -160,6 +160,7 @@ plot(potential, seriestype =:contourf, contours = 50, colorbar=true,
     xticks = 0:100:1000,
     yticks = 0:100:1000,
     title = "Charged Circle",
+    c = :bluesreds
 )
 
 # @view fixed[700:900, 400:600]
