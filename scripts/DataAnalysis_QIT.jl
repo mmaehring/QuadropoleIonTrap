@@ -1,3 +1,5 @@
+# using DrWatson
+# @quickactivate("")
 using Measurements
 using CSV
 using DataFrames
@@ -88,14 +90,14 @@ end;
 PATH1 = "data//exp_raw//PhoneScreen1_first2_calib_1_pixel_onPhone.txt";
 data_set1, errors1 = analyze_data_phone_screen(PATH1);
 println("Mean & standard deviation of the first data set: $(mean(data_set1)) ± ($(std(data_set1))")
-mean_Radius_Phone1 = mean(data_set1);
+mean_Radius_Phone1 = mean(data_set1)
 println("Relative error: $(std(data_set1) / mean(data_set1) * 100) %")
 println("List of relative errors of the pure data: $(round.(errors1; digits=3))")
 
 PATH2 = "data//exp_raw//PhoneScreen2_first2_calib_1_pixel_onPhone.txt";
 data_set2, error2 = analyze_data_phone_screen(PATH2)
 println("Mean & standard deviation of the second data set: $(mean(data_set2)) ± ($(std(data_set2)))")
-mean_Radius_Phone2 = mean(data_set2);
+mean_Radius_Phone2 = mean(data_set2)
 
 function analyze_data_terminal_velocity(calibration_val, T, PATH)
     #=
@@ -106,12 +108,14 @@ function analyze_data_terminal_velocity(calibration_val, T, PATH)
     df = CSV.read(PATH, DataFrame)
 
     # Get only the good data
-    df = subset(df, :OkQuality => x -> x .== "")
+    df = subset(df, :OkQuality => x -> x .== "G")
 
     # Data where the TerminalVelocity is ascertained
     df_T = subset(df, :SureTerminal => x -> x .== 1)
     # Data where the TerminalVelocity is NOT ascertained
     df_NT = subset(df, :SureTerminal => x -> x .== 0)
+
+    println(df_T)
 
     # get the raw data, note that these are lengths of one bright stripe
     data_T = mean(df_T[!, [:y1, :y2]] |> Array, dims=2)
@@ -138,8 +142,8 @@ conversion_setup_2 = mean([95 ± 2, 90 ± 2, 89 ± 1.5]) # pixel / 2mm
 f = 50u"Hz"
 
 data_M4 = analyze_data_terminal_velocity(conversion_setup_2, 1/f |> u"s", path_M4)
-M4_average_velocity_T = mean(data_M4[1])
-
+M4_average_velocity_T, M4_std_velocity_T = [mean(data_M4[1]), std(data_M4[1])]
+M4_average_velocity_T_mm, M4_std_velocity_T_mm = [mean(data_M4[1]), std(data_M4[1])] .|> u"mm/s"
 ## Some quick gaussian boy action
 
 using StatsPlots
@@ -150,8 +154,8 @@ histogram_M4_T = histogram(ustrip.(Measurements.value.(M4_T_Cleaned)), bins = 3)
 
 ## Stokes law and things
 # Stokes law - > calculating m/R
-ρ = 1.2u"kg^3/m" # (at 1 ATM)
-μ = 1.8e-5u"kg/m/s"
+ρ = (1.2±0.05)u"kg*m^-3" # (at 1 ATM)
+μ = (1.8±0.05)e-5u"kg*m^-1*s^-1"
 g_con = (9.80600 ± 0.000005)u"m/s^2" # https://www.metas.ch/metas/de/home/dok/gravitationszonen.html
 
 m_R(velocity) = 6*π*velocity*μ / g_con
@@ -166,11 +170,13 @@ m_Phone2 = mass_radius_quotient * mean_Radius_Phone2 |> u"kg"
 masses = [m_Laser, m_Phone1, m_Phone2]
 
 # Reynolds number for different R
-Re(v, R_val) = @. 2 * ρ * v * R_val / μ
+Re(v, R_val) = @. 2 * ρ * v * R_val * 1/μ
 
 # Laser [1], Phone1 [2] and Phone2 [3]
 radii = [R̄, mean_Radius_Phone1, mean_Radius_Phone2] .|> u"m";
-reynolds_numbers = Re(M4_average_velocity_T, radii);
+# reynolds_numbers = ustrip.(Re(M4_average_velocity_T, radii))
+reynolds_numbers = (Re(M4_average_velocity_T, radii))
+maximal_reynolds = Measurements.value.(reynolds_numbers) .+ Measurements.uncertainty.(reynolds_numbers)
 
 ## Charge calculation
 d = (4 ± 0.25)u"mm"
@@ -191,4 +197,6 @@ mass_charge_distr_Voltages_DC_units = mass_charge_distr_Voltages_DC .*1u"V"
 charges = (q(mass_ill_use, mass_charge_distr_Voltages_DC_units)) .|>u"C"
 
 using PhysicalConstants.CODATA2018: e
-charges_in_unit_charges = charges / ustrip(e) .|> u"kC";
+charges_in_unit_charges = (charges / ustrip(e)) .|> u"kC"
+
+average_charge_in_1ks_of_unit_charges = mean(charges / e) / 1000
