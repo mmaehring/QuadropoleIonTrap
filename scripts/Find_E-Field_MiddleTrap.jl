@@ -101,4 +101,4 @@ E_vals_z = [E_mid_val0, E_mid_val4] ./ 14e-6
 V = 1u"V"
 E_val_final_all = mean(abs.(E_vals))u"V/m"
 E_val_final_ud = mean(abs.(E_vals_z))u"V/m"
-α =  E_val_final_ud * (d|>u"m") / V
+α =  E_val_final_all * (d|>u"m") / V
