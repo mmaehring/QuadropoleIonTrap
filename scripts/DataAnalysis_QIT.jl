@@ -1,99 +1,110 @@
-# using DrWatson
+using DrWatson
 # @quickactivate("")
-using Measurements
-using CSV
-using DataFrames
-using StatsPlots
-using Distributions
-using Unitful
+begin
+    using Measurements
+    using CSV
+    using DataFrames
+    using StatsPlots
+    using Distributions
+    using Unitful
+    using UnitfulUS
+    using DataFrames
+    using StatsBase
+    using Statistics
+end
 
+# @quickactivate("QuadropoleIonTrap")
+cd("C:\\Users\\marcu\\OneDrive\\Desktop\\PraktikumIII\\QuadropoleIonTrap")
 ## Read in data
-data_path_qm_distr = "data\\exp_raw\\qM_Values_220V_AC.txt"
-mass_charge_distr_Voltages_DC = CSV.File(data_path_qm_distr,
-                        delim=' ',
-                        ignorerepeated=false,
-                        missingstring="NA") |> DataFrame
-mass_charge_distr_Voltages_DC = mass_charge_distr_Voltages_DC |> Array
+begin
+    data_path_qm_distr = "data\\exp_raw\\qM_Values_220V_AC.txt"
+    mass_charge_distr_Voltages_DC = CSV.File(data_path_qm_distr,
+    delim=' ',
+    ignorerepeated=false,
+    missingstring="NA") |> DataFrame
+    mass_charge_distr_Voltages_DC = mass_charge_distr_Voltages_DC |> Array
 
-# Old data -> for later use
-data_path_qm_distr_OLD = "data\\exp_raw\\qM_Values_220V_AC_OLD.txt"
-mass_charge_distr_Voltages_DC_OLD = CSV.File(data_path_qm_distr_OLD,
-                        delim=' ',
-                        ignorerepeated=false,
-                        missingstring="NA") |> DataFrame
-mass_charge_distr_Voltages_DC_OLD = mass_charge_distr_Voltages_DC_OLD |> Array
+    # Old data -> for later use
+    data_path_qm_distr_OLD = "data\\exp_raw\\qM_Values_220V_AC_OLD.txt"
+    mass_charge_distr_Voltages_DC_OLD = CSV.File(data_path_qm_distr_OLD,
+    delim=' ',
+    ignorerepeated=false,
+    missingstring="NA") |> DataFrame
+    mass_charge_distr_Voltages_DC_OLD = mass_charge_distr_Voltages_DC_OLD |> Array
+end
 
 ## Just a scatter plot
-plot(mass_charge_distr_Voltages_DC, mass_charge_distr_Voltages_DC,
-    xlabel="xdata",
-    ylabel="ydata",
-    seriestype=:scatter,
-    markersize=3.25,
-    dpi=300,
-    size=((600, 400)),
-    title=(nothing)
-)
+# plot(mass_charge_distr_Voltages_DC, mass_charge_distr_Voltages_DC,
+#     xlabel="xdata",
+#     ylabel="ydata",
+#     seriestype=:scatter,
+#     markersize=3.25,
+#     dpi=300,
+#     size=((600, 400)),
+#     title=(nothing)
+# )
 
-## Bar plot + fitted normal curve
-histogram(mass_charge_distr_Voltages_DC,
+## Bar plot + fitted normal curve (new data)
+begin
+    histogram(mass_charge_distr_Voltages_DC,
     bins= 7,
     weights = ones(length(mass_charge_distr_Voltages_DC)) / length(mass_charge_distr_Voltages_DC),
-    label = "Measured Data",
-    xlims = (7, 38)
-)
-fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(mass_charge_distr_Voltages_DC))
-μ_fitted = round(fitted_distribution.μ; digits=2)
-σ_fitted = round(fitted_distribution.σ; digits=2)
+    label = "Measured Data \n",
+    xlims = (7, 38),
+    legend = :topleft,
+    dpi = 500
+    )
+    fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(mass_charge_distr_Voltages_DC))
+    μ_fitted = round(fitted_distribution.μ; digits=2)
+    σ_fitted = round(fitted_distribution.σ; digits=2)
 
-plot!(fitted_distribution, xlabel = "DC Values [V]", ylabel = "Percentage of data set", label = "\n Gaussian Fit, \n μ=$(μ_fitted) & σ=$(σ_fitted)")
+    plot!(fitted_distribution, xlabel = "DC Values [V]",
+    ylabel = "Percentage of data set",
+    label = "Gaussian Fit: μ=$(μ_fitted) & σ=$(σ_fitted)")
 
-# savefig("plots/qm_distr_upd.png")
+    # savefig("plots/qm_distr_new_data.pdf")
+end
 
 ## Old data and new data
-old_and_new_charge_distr = vcat(mass_charge_distr_Voltages_DC_OLD |> Array, mass_charge_distr_Voltages_DC |> Array)
-
-histogram(old_and_new_charge_distr,
-    bins= 7,
-    weights = ones(length(old_and_new_charge_distr)) / length(old_and_new_charge_distr),
-    label = "Measured Data \n",
-    title = "Old and new",
-    xlims = (10, 35),
-    legend=:topleft,
-    yticks = ([0, 0.1, 0.2, 0.3, 0.4, 0.5], string.([0, 10, 20, 30, 40, 50])),
-    dpi = 250
-)
-fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(old_and_new_charge_distr))
-μ_fitted = round(fitted_distribution.μ; digits=2)
-σ_fitted = round(fitted_distribution.σ; digits=2)
-
-plot!(fitted_distribution, xlabel = "DC Values [V]", ylabel = "Percentage of data set", label = "\n Gaussian Fit: μ=$(μ_fitted) & σ=$(σ_fitted)")
+# begin
+#     old_and_new_charge_distr = vcat(mass_charge_distr_Voltages_DC_OLD |> Array, mass_charge_distr_Voltages_DC |> Array)
+#
+#     histogram(old_and_new_charge_distr,
+#     bins= 7,
+#     weights = ones(length(old_and_new_charge_distr)) / length(old_and_new_charge_distr),
+#     label = "Measured Data \n",
+#     title = "Old and new",
+#     xlims = (10, 35),
+#     legend=:topleft,
+#     yticks = ([0, 0.1, 0.2, 0.3, 0.4, 0.5], string.([0, 10, 20, 30, 40, 50])),
+#     dpi = 250
+#     )
+#     fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(old_and_new_charge_distr))
+#     μ_fitted = round(fitted_distribution.μ; digits=2)
+#     σ_fitted = round(fitted_distribution.σ; digits=2)
+#
+#     plot!(fitted_distribution, xlabel = "DC Values [V]", ylabel = "Percentage of data set", label = "\n Gaussian Fit: μ=$(μ_fitted) & σ=$(σ_fitted)")
+# end
 
 
 ## NEW EXPERIMENT PART
 ## Calculate the average radius : diffraction experiment
-λ = (655 ± 5)u"nm" # Wave-length of laser
-R = (50 ± 0.4)u"cm" # Distance to screen
-D = (3.8 ± 0.2)u"cm" # Distance between two minima
-Rₐ = D / 2 # Distance from center to one minimum
+begin
+    const λ = (655 ± 5)u"nm" # Wave-length of laser
+    const R = (50 ± 0.4)u"cm" # Distance to screen
+    const D = (3.8 ± 0.2)u"cm" # Distance between two minima
+    const Rₐ = D / 2 # Distance from center to one minimum
+end
 
 # Small angle approximation on equation : sin(θ) = 1.22 ⋅ λ / 2R
-θ = Rₐ / R # small angle approximation to determine the sine of θ ; i.e. distance between minima / distance to screen
+# small angle approximation to determine the sine of θ ; i.e. distance between minima / distance to screen
+θ = Rₐ / R
 # Now solve equation for R̄ : R̄ = 1.22 ⋅ λ / 2θ
 R̄ = (1.22 * λ / (2θ)) |> u"μm"
 
 rel_error = Measurements.uncertainty(R̄) / Measurements.value(R̄) * 100
 
 ## Calculate the average radius : phone screen
-using CSV
-using Measurements
-using Unitful
-using UnitfulUS
-using DataFrames
-using StatsBase
-using Statistics
-
-cd("C:/Users/marcu/OneDrive/Desktop/PraktikumIII/QuadropoleIonTrap")
-
 function analyze_data_phone_screen(PATH; PPI = 458, pixels_calibration = 1)
     df = CSV.read(PATH, DataFrame)
 
@@ -174,8 +185,6 @@ data_M4 = analyze_data_terminal_velocity(conversion_setup_2, 1/f |> u"s", path_M
 M4_average_velocity_T, M4_std_velocity_T = [mean(data_M4[1]), std(data_M4[1])]
 M4_average_velocity_T_mm, M4_std_velocity_T_mm = [mean(data_M4[1]), std(data_M4[1])] .|> u"mm/s"
 ## Some quick gaussian boy action
-
-using StatsPlots
 M4_T_Cleaned = ustrip.(Measurements.value.(data_M4[1]))
 min_val, max_val = extrema(M4_T_Cleaned);
 # bins_M4 = range(min_val, max_val; length=4);
@@ -183,9 +192,9 @@ histogram_M4_T = histogram(ustrip.(Measurements.value.(M4_T_Cleaned)), bins = 3)
 
 ## Stokes law and things
 # Stokes law - > calculating m/R
-ρ = (1.2±0.05)u"kg*m^-3" # (at 1 ATM)
-μ = 10^-5 * (1.8±0.05)u"kg*m^-1*s^-1"
-g_con = (9.80600 ± 0.000005)u"m/s^2" # https://www.metas.ch/metas/de/home/dok/gravitationszonen.html
+const ρ = (1.2±0.05)u"kg*m^-3" # (at 1 ATM)
+const μ = 10^-5 * (1.8±0.05)u"kg*m^-1*s^-1"
+const g_con = (9.80600 ± 0.000005)u"m/s^2" # https://www.metas.ch/metas/de/home/dok/gravitationszonen.html
 
 m_R(velocity) = 6*π*velocity*μ / g_con
 
@@ -209,14 +218,25 @@ maximal_reynolds = Measurements.value.(reynolds_numbers) .+ Measurements.uncerta
 
 ## Charge calculation
 d = (4 ± 0.25)u"mm"
-r = (3 ± 0.25)u"mm"
+r = (3 ± 0.25)u"mm" # 2r
+r = r/2
 
 α_measured_from_plot = 2.5 ± 0.41
+α_measured_from_plot = 1.40 ± 0.21
+# α_measured_from_plot = 2.20 ± 0.21
 # α_fem = 0.0003? -> Failure
 
 Ec(V) = α_measured_from_plot * V / (d|>u"m")
+electric_field_vals = Ec.(mass_charge_distr_Voltages_DC_units)
 
 g = (9.80600 ± 0.000005)u"m/s^2"
+
+q_m_vals = g./electric_field_vals .|> u"C/g"
+q_m_vals_mu = g./electric_field_vals .|> u"μC/g"
+
+# using DelimitedFiles
+# writedlm("data\\exp_pro\\q_m_vals_mu_alpha_1.4.txt", q_m_vals_mu)
+
 
 q(m, V) = @. m * g  / Ec(V)
 
@@ -227,44 +247,57 @@ charges = (q(mass_ill_use, mass_charge_distr_Voltages_DC_units)) .|>u"C"
 
 using PhysicalConstants.CODATA2018: e
 charges_in_unit_charges = (charges / ustrip(e)) .|> u"kC"
-charges_in_1k_unit_charges = (charges / (e)) / 1000 # charge given in 1000s of unit charges
+charges_in_1k_unit_charges = (charges ./ 1000e) # charge given in 1000s of unit charges
 
 average_charge_in_1ks_of_unit_charges = mean(charges / e) / 1000
 
+## Printing in latex table format
+begin
+    for (i, e1, e2) in zip(1:15, ustrip.(charges .|> u"fC"), charges_in_1k_unit_charges)
+        println(i, raw" & $", e1, raw"$ & $", e2, raw"$ Å")
+        println(raw"\hline")
+    end
+    println(raw"Mean & $", mean(ustrip.(charges .|> u"fC")), raw"$ & $", mean(charges_in_1k_unit_charges), raw"$ Å")
+end
+
+
+
 ## Histogram fitting only new charge / mass data
-histogram(Measurements.value.(charges_in_1k_unit_charges),
-        bins = 5,
-        # bins=range(minimum(Measurements.value.(charges_in_1k_unit_charges)), stop=maximum(Measurements.value.(charges_in_1k_unit_charges)), length=6),
+begin
+    histogram(Measurements.value.(charges_in_1k_unit_charges),
+        # bins = 4,
+        bins=range(minimum(Measurements.value.(charges_in_1k_unit_charges)), stop=maximum(Measurements.value.(charges_in_1k_unit_charges)), length=6),
         weights = ones(length(charges_in_1k_unit_charges)) / (10*length(charges_in_1k_unit_charges)),
-        label = "Charge distribution in 1000's of unit charges \n",
-        ylims = (0, 0.055),
-        xlims = (145, 455),
+        label = "1000's of unit charges \n",
+        ylims = (0, 0.055), legend=:topright,
+        # xlims = (145, 455),
         yticks =([0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07], string.([0, 10, 20, 30, 40, 50 , 60, 70])),
         xlabel = "Amount of unit charges"
-)
+    )
 
-
-fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(charges_in_1k_unit_charges))
-μ_fitted = round(fitted_distribution.μ; digits=2)
-σ_fitted = round(fitted_distribution.σ; digits=2)
-plot!(fitted_distribution, ylabel = "Percentage of data set", label = "Gaussian Fit: μ=$(μ_fitted) & σ=$(σ_fitted)")
-
-histogram(Measurements.value.(charges_in_1k_unit_charges),
-        bins = 5,
-        # bins=range(minimum(Measurements.value.(charges_in_1k_unit_charges)), stop=maximum(Measurements.value.(charges_in_1k_unit_charges)), length=6),
-        weights = ones(length(charges_in_1k_unit_charges)) / (10*length(charges_in_1k_unit_charges)),
-        label = "Charge distribution in 1000's of unit charges \n",
-        ylims = (0, 0.055),
-        xlims = (145, 455),
-        yticks =([0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07], string.([0, 10, 20, 30, 40, 50 , 60, 70])),
-        xlabel = "Amount of unit charges"
-)
-
-
-fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(charges_in_1k_unit_charges))
-μ_fitted = round(fitted_distribution.μ; digits=2)
-σ_fitted = round(fitted_distribution.σ; digits=2)
-plot!(fitted_distribution, ylabel = "Percentage of data set", label = "Gaussian Fit: μ=$(μ_fitted) & σ=$(σ_fitted)")
-# plot(fitted_distribution, seriestype=:line)
-
-## Histogram fitting old and new histogram data
+    fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(charges_in_1k_unit_charges))
+    μ_fitted = round(fitted_distribution.μ; digits=2)
+    σ_fitted = round(fitted_distribution.σ; digits=2)
+    fc(x) = 12.5 * pdf(fitted_distribution, x)
+    plot!(0:1000, fc.(0:1000), ylabel = "Percentage of data set", label = "Fit: μ=$(μ_fitted), σ=$(σ_fitted)")
+    savefig("plots/q_distr_newdata_alpha=1_4.pdf")
+end
+# begin
+#     histogram(Measurements.value.(charges_in_1k_unit_charges),
+#         bins = 5,
+#         # bins=range(minimum(Measurements.value.(charges_in_1k_unit_charges)), stop=maximum(Measurements.value.(charges_in_1k_unit_charges)), length=6),
+#         weights = ones(length(charges_in_1k_unit_charges)) / (10*length(charges_in_1k_unit_charges)),
+#         label = "Charge distribution in 1000's of unit charges \n",
+#         # ylims = (0, 0.055),
+#         # xlims = (145, 455),
+#         # yticks =([0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07], string.([0, 10, 20, 30, 40, 50 , 60, 70])),
+#         xlabel = "Amount of unit charges",
+#         dpi = 500
+#     )
+#
+#     fitted_distribution = Distributions.fit(Distributions.Normal, Measurements.value.(charges_in_1k_unit_charges))
+#     μ_fitted = round(fitted_distribution.μ; digits=2)
+#     σ_fitted = round(fitted_distribution.σ; digits=2)
+#     plot!(fitted_distribution, ylabel = "Percentage of data set", label = "Gaussian Fit: μ=$(μ_fitted) & σ=$(σ_fitted)")
+#     # plot(fitted_distribution, seriestype=:line)
+# end
